@@ -48,3 +48,29 @@ RAG_PROMPT_TEMPLATE = """\
 User question: {question}
 
 Answer:"""
+
+# V2 prompt with multi-turn conversation memory
+RAG_PROMPT_TEMPLATE_V2 = """\
+{system_prompt}
+
+--- Conversation History ---
+{chat_history}
+--- End History ---
+
+--- Retrieved Context ---
+{context}
+--- End Context ---
+
+User question: {question}
+
+Answer:"""
+
+FOLLOWUP_PROMPT_TEMPLATE = """\
+Based on this robotics Q&A exchange, suggest exactly 3 brief follow-up questions \
+the user might ask next. Each should explore a different aspect or go deeper. \
+Keep each question under 15 words.
+
+Question: {question}
+Answer: {answer}
+
+Respond with exactly 3 questions, one per line, numbered 1-3. No other text."""

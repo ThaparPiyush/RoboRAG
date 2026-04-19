@@ -16,6 +16,14 @@ import config
 load_dotenv()
 
 
+def get_llm():
+    return ChatOpenAI(
+        model=config.LLM_MODEL,
+        temperature=config.LLM_TEMPERATURE,
+        max_tokens=config.LLM_MAX_OUTPUT_TOKENS,
+    )
+
+
 def get_vectorstore() -> Chroma:
     embeddings = OpenAIEmbeddings(model=config.EMBEDDING_MODEL)
     return Chroma(
@@ -38,18 +46,60 @@ def format_docs(docs) -> str:
     return "\n\n".join(formatted)
 
 
+# ── New: retrieval with similarity scores (for confidence indicator) ─────────
+
+def retrieve_with_scores(vs, query: str, top_k: int = config.TOP_K):
+    """Return (docs, relevance_scores) where scores are 0-1 (higher = better)."""
+    results = vs.similarity_search_with_relevance_scores(query, k=top_k)
+    docs = [doc for doc, _ in results]
+    scores = [max(0.0, score) for _, score in results]
+    return docs, scores
+
+
+# ── New: RAG query with multi-turn memory ────────────────────────────────────
+
+def answer_question(llm, vs, question: str, chat_history: str = ""):
+    """Full RAG query with confidence scores and conversation memory.
+    Returns (answer, docs, scores)."""
+    docs, scores = retrieve_with_scores(vs, question)
+    context = format_docs(docs)
+
+    prompt = ChatPromptTemplate.from_template(config.RAG_PROMPT_TEMPLATE_V2)
+    chain = prompt | llm | StrOutputParser()
+
+    answer = chain.invoke({
+        "system_prompt": config.SYSTEM_PROMPT,
+        "context": context,
+        "question": question,
+        "chat_history": chat_history,
+    })
+    return answer, docs, scores
+
+
+# ── New: follow-up question generation ───────────────────────────────────────
+
+def generate_followups(llm, question: str, answer: str) -> list[str]:
+    """Generate 2-3 follow-up questions from the Q&A exchange."""
+    prompt = ChatPromptTemplate.from_template(config.FOLLOWUP_PROMPT_TEMPLATE)
+    chain = prompt | llm | StrOutputParser()
+    result = chain.invoke({"question": question, "answer": answer})
+
+    followups = []
+    for line in result.strip().split("\n"):
+        cleaned = line.strip().lstrip("0123456789.-) ").strip()
+        if cleaned and len(cleaned) > 10:
+            followups.append(cleaned)
+    return followups[:3]
+
+
+# ── Legacy: original chain for evaluate.py backward compatibility ────────────
+
 def build_rag_chain():
     """Return a LangChain runnable that accepts a question string
     and returns an answer string, plus a retriever for source docs."""
 
     retriever = get_retriever()
-
-    llm = ChatOpenAI(
-        model=config.LLM_MODEL,
-        temperature=config.LLM_TEMPERATURE,
-        max_tokens=config.LLM_MAX_OUTPUT_TOKENS,
-    )
-
+    llm = get_llm()
     prompt = ChatPromptTemplate.from_template(config.RAG_PROMPT_TEMPLATE)
 
     rag_chain = (
