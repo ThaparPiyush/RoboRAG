@@ -78,18 +78,45 @@ def answer_question(llm, vs, question: str, chat_history: str = ""):
 
 # ── New: follow-up question generation ───────────────────────────────────────
 
-def generate_followups(llm, question: str, answer: str) -> list[str]:
-    """Generate 2-3 follow-up questions from the Q&A exchange."""
+def generate_followups(llm, vs, question: str, answer: str) -> list[str]:
+    """Generate follow-up questions, validated against the KB.
+    Only returns questions that the knowledge base can actually answer."""
     prompt = ChatPromptTemplate.from_template(config.FOLLOWUP_PROMPT_TEMPLATE)
     chain = prompt | llm | StrOutputParser()
     result = chain.invoke({"question": question, "answer": answer})
 
-    followups = []
+    candidates = []
     for line in result.strip().split("\n"):
         cleaned = line.strip().lstrip("0123456789.-) ").strip()
         if cleaned and len(cleaned) > 10:
-            followups.append(cleaned)
-    return followups[:3]
+            candidates.append(cleaned)
+
+    # Blocklist: phrases that ask about things outside the KB
+    _blocklist = [
+        "compare to other", "compared to other", "traditional",
+        "alternative", "vs other", "outside of", "beyond",
+        "real-world example", "industry", "production",
+        "implement", "configure", "install", "set up", "setup",
+        "code example", "tutorial", "step by step",
+    ]
+
+    def _is_safe(q: str) -> bool:
+        q_lower = q.lower()
+        return not any(phrase in q_lower for phrase in _blocklist)
+
+    # Validate: blocklist + retrieval confidence check
+    validated = []
+    for fq in candidates[:6]:
+        if not _is_safe(fq):
+            continue
+        _, scores = retrieve_with_scores(vs, fq, top_k=3)
+        top_score = max(scores) if scores else 0
+        if top_score >= 0.42:
+            validated.append(fq)
+        if len(validated) == 3:
+            break
+
+    return validated
 
 
 # ── Legacy: original chain for evaluate.py backward compatibility ────────────

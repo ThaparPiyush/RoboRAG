@@ -255,10 +255,10 @@ if active_question:
 
         st.caption(f"⏱ Response time: {latency:.1f}s")
 
-        # Generate follow-up suggestions
+        # Generate follow-up suggestions (validated against KB)
         with st.spinner("Generating follow-up suggestions …"):
             try:
-                followups = generate_followups(llm, active_question, answer)
+                followups = generate_followups(llm, vs, active_question, answer)
             except Exception:
                 followups = []
 
