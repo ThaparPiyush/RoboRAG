@@ -20,20 +20,20 @@ User Question
      │
      ▼
 ┌─────────────┐     ┌───────────────────┐
-│  Streamlit   │────▶│ OpenAI Embeddings  │
-│   Web UI     │     │ text-embedding-3   │
+│  Streamlit  │────▶│ OpenAI Embeddings │
+│   Web UI    │     │ text-embedding-3  │
 └─────┬───────┘     └────────┬──────────┘
       │                      │
       │                      ▼
       │              ┌──────────────┐
-      │              │   ChromaDB    │
-      │              │ Vector Store  │
+      │              │   ChromaDB   │
+      │              │ Vector Store │
       │              └──────┬───────┘
       │                     │ top-5 chunks
       │                     ▼
       │              ┌──────────────┐
-      └─────────────▶│   OpenAI      │
-                     │  GPT-4o-mini  │
+      └─────────────▶│   OpenAI     │
+                     │  GPT-4o-mini │
                      └──────┬───────┘
                             │
                             ▼
