@@ -1,0 +1,538 @@
+\documentclass[12pt, a4paper]{article}
+
+% ── Packages ──────────────────────────────────────────────────────────────────
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{parskip}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    urlcolor=blue!70!black,
+    citecolor=blue!70!black,
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{DS552 --- Generative AI}
+\lhead{RoboRAG --- Capstone Project}
+\cfoot{\thepage}
+
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.5em}{}
+
+% ── Document ──────────────────────────────────────────────────────────────────
+\begin{document}
+
+% ── Title page ────────────────────────────────────────────────────────────────
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+
+{\LARGE\bfseries RoboRAG: A Retrieval-Augmented Generation\\[4pt]
+Web Application for Robot Task Planning\\[4pt]
+and Motion Planning Assistance\par}
+
+\vspace{1.5cm}
+{\large DS552 --- Generative AI\\[6pt]
+Worcester Polytechnic Institute\par}
+
+\vspace{2cm}
+{\large
+\textbf{Submitted by:}\\[4pt]
+Piyush Thapar\par}
+
+\vspace{1cm}
+{\large
+\textbf{Instructor:}\\[4pt]
+Dr.\ Narahara Chari Dingari\par}
+
+\vspace{2cm}
+{\large April 2026\par}
+
+\vfill
+\end{titlepage}
+
+% ── Table of contents ─────────────────────────────────────────────────────────
+\tableofcontents
+\newpage
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Project Title}
+
+\textbf{RoboRAG: A Retrieval-Augmented Generation Web Application for Robot Task Planning and Motion Planning Assistance}
+
+\textbf{Deployed Application:} \url{PLACEHOLDER_STREAMLIT_URL}
+
+\textbf{GitHub Repository:} \url{PLACEHOLDER_GITHUB_URL}
+
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Introduction and Objective}
+
+\subsection{Introduction}
+
+Robotics researchers and engineers face a recurring challenge: the knowledge they need to make informed decisions about motion planners, manipulation strategies, sensor configurations, and software frameworks is scattered across academic papers, documentation pages, tutorials, and forum discussions. A graduate student trying to choose between RRT* and STOMP for a 7-DOF arm might need to search through three arXiv papers, a half-finished ROS Answers thread, and a MoveIt GitHub issue before finding a useful answer.
+
+Large Language Models (LLMs) have demonstrated impressive natural-language understanding and generation capabilities, but they frequently hallucinate facts in specialized technical domains. In robotics specifically, LLMs have been observed to confidently recommend API functions that do not exist or describe algorithm behaviors that are factually incorrect. This limits their usefulness as reliable technical assistants.
+
+Retrieval-Augmented Generation (RAG)~\cite{lewis2020rag} addresses this fundamental limitation by grounding the LLM's responses in actual retrieved documents. Rather than relying on the model's parametric memory, RAG retrieves the most relevant passages from a curated knowledge base at inference time and instructs the LLM to synthesize its answer based on that context. This significantly improves factual accuracy and provides verifiable source citations.
+
+\subsection{Objective}
+
+The objective of this project is to develop \textbf{RoboRAG}, a web application that serves as an intelligent question-answering assistant for robot task planning and motion planning. Users can ask natural-language questions such as:
+
+\begin{itemize}[nosep]
+    \item ``What motion planner should I use for a 7-DOF arm in a cluttered environment?''
+    \item ``How does RRT* differ from PRM for high-dimensional configuration spaces?''
+    \item ``What are the best practices for grasping transparent objects?''
+\end{itemize}
+
+The application retrieves relevant passages from a curated knowledge base of robotics documentation, then uses OpenAI's GPT-4o-mini model to synthesize a grounded, coherent answer along with source citations.
+
+\subsection{Why RAG with GPT-4o-mini Is Suitable}
+
+A RAG architecture is ideal for domain-specific technical Q\&A because:
+
+\begin{enumerate}[nosep]
+    \item \textbf{Factual grounding:} The LLM reads relevant documentation at inference time rather than relying on potentially outdated or incorrect parametric memory.
+    \item \textbf{Source transparency:} Every answer comes with retrievable source passages that the user can verify, which is critical in engineering domains.
+    \item \textbf{Focused domain coverage:} By curating the knowledge base, we control exactly what the system knows and can ensure comprehensive coverage without noise.
+    \item \textbf{High-quality generation:} GPT-4o-mini provides excellent instruction-following and summarization at very low cost (\textasciitilde\$0.15 per 1M input tokens).
+\end{enumerate}
+
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Selection of Generative AI Model}
+
+\subsection{Model Choice: OpenAI GPT-4o-mini}
+
+The project uses \textbf{OpenAI GPT-4o-mini} as the generative model, accessed through the OpenAI API via the \texttt{langchain-openai} integration.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Criterion} & \textbf{Justification} \\
+\midrule
+Performance & Excels at reading comprehension, summarization, and instruction-following \\
+Cost & \$0.15/1M input tokens, \$0.60/1M output tokens --- under \$2 total \\
+API reliability & Production-grade, generous rate limits, no rate-limit issues \\
+LangChain support & First-class integration via \texttt{langchain-openai} \\
+Context window & 128K tokens --- easily accommodates retrieved chunks + question \\
+Latency & Average 3--5 seconds per response \\
+\bottomrule
+\end{tabular}
+\caption{Model selection criteria and justification.}
+\end{table}
+
+\subsection{Embedding Model: OpenAI text-embedding-3-small}
+
+For vector embeddings, the project uses OpenAI's \texttt{text-embedding-3-small} model, which converts both document chunks and user queries into 1536-dimensional dense vectors for semantic similarity search. At \$0.02 per 1M tokens, embedding the entire knowledge base costs less than \$0.01. Using OpenAI's embedding model eliminates the need for a local ML model, reducing deployment memory requirements significantly.
+
+\subsection{Alternatives Considered}
+
+\begin{itemize}[nosep]
+    \item \textbf{Google Gemini 2.5 Flash (free tier):} Initially tested but the free tier had severe rate limits (20 generation requests/day) that made development and reliable deployment impractical.
+    \item \textbf{Mistral 7B (local via Ollama):} Requires 4.5~GB RAM and cannot run on free cloud hosting platforms.
+    \item \textbf{Groq API (free Mistral):} Free but has reliability issues under load.
+\end{itemize}
+
+GPT-4o-mini provides the best combination of quality, reliability, generous rate limits, and extremely low cost.
+
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Project Definition and Use Case}
+
+\subsection{Application Concept}
+
+RoboRAG is a \textbf{domain-specific question-answering system} for robotics and motion planning, built as an interactive web application with a chat interface. It is specifically designed to answer technical questions about motion planning algorithms, the MoveIt~2 framework, ROS~2, robot manipulation, kinematics, and related topics.
+
+\subsection{How the Generative AI Model Is Integrated}
+
+The application follows a Retrieval-Augmented Generation (RAG) architecture with two stages:
+
+\textbf{Offline stage (one-time ingestion):}
+\begin{enumerate}[nosep]
+    \item Curated robotics documents are loaded and parsed (8 documents, \textasciitilde15,000 words).
+    \item Documents are split into overlapping chunks (\textasciitilde800 tokens, 100-token overlap) using LangChain's \texttt{RecursiveCharacterTextSplitter}.
+    \item Each chunk is embedded using OpenAI's \texttt{text-embedding-3-small}.
+    \item Vectors are stored in ChromaDB with metadata (source title, file path).
+\end{enumerate}
+
+\textbf{Online stage (per user query):}
+\begin{enumerate}[nosep]
+    \item The user types a question in the Streamlit chat interface.
+    \item The question is embedded using the same embedding model.
+    \item ChromaDB retrieves the top-5 most similar document chunks.
+    \item Retrieved chunks + question + system prompt are assembled into a prompt.
+    \item GPT-4o-mini generates a grounded answer with source citations.
+    \item The answer and source passages are displayed in the chat interface.
+\end{enumerate}
+
+\subsection{Use Case Scenario}
+
+A robotics graduate student setting up a manipulation pipeline asks: ``What motion planner should I use for a 7-DOF arm in a cluttered environment?'' Within seconds, they receive an answer recommending RRT-Connect as a fast feasible path finder, STOMP for smooth trajectories, and Pilz for deterministic motion---all with citations to specific knowledge base documents. The student can expand the ``Source Documents'' section to verify claims.
+
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Implementation Plan}
+
+\subsection{Technology Stack}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Layer} & \textbf{Technology} & \textbf{Purpose} \\
+\midrule
+LLM & OpenAI GPT-4o-mini & Answer generation \\
+Embeddings & OpenAI text-embedding-3-small & Document and query embedding \\
+Vector Database & ChromaDB (local, persisted) & Semantic similarity search \\
+RAG Orchestration & LangChain & Chain construction, retrieval, prompting \\
+Web Framework & Streamlit & Interactive chat UI \\
+Language & Python 3.10+ & All components \\
+Document Processing & LangChain text splitters & Chunking \\
+Evaluation & rouge-score, scikit-learn, psutil & Performance metrics \\
+Configuration & python-dotenv & API key management \\
+\bottomrule
+\end{tabular}
+\caption{Complete technology stack.}
+\end{table}
+
+\subsection{Web Framework: Streamlit}
+
+Streamlit was chosen because it is native Python (no frontend code required), provides built-in \texttt{st.chat\_input} and \texttt{st.chat\_message} components for a polished chat interface, supports \texttt{st.cache\_resource} for caching the RAG pipeline across reruns, and Streamlit Cloud offers free, persistent hosting with one-click deployment from GitHub.
+
+\subsection{Development Steps}
+
+\begin{enumerate}
+    \item \textbf{Data curation:} Authored 8 comprehensive markdown documents covering motion planning algorithms, MoveIt~2, ROS~2, robot manipulation, kinematics, path planning, SLAM, and common robot platforms (\textasciitilde15,000 words total).
+
+    \item \textbf{Ingestion pipeline} (\texttt{ingest.py}): Reads knowledge base files, chunks them (800 tokens, 100 overlap), embeds with \texttt{text-embedding-3-small}, and stores in ChromaDB. Completes in under 15 seconds.
+
+    \item \textbf{RAG chain} (\texttt{rag\_chain.py}): LangChain chain that retrieves top-5 chunks, formats them with source labels, builds a prompt with strict system instructions, and generates via GPT-4o-mini.
+
+    \item \textbf{Streamlit application} (\texttt{app.py}): Chat interface with randomized example questions, expandable source document panels, response time display, and a sidebar with system information.
+
+    \item \textbf{Evaluation} (\texttt{evaluate.py}): Automated evaluation against 20 benchmark Q\&A pairs measuring ROUGE, F1, retrieval precision, latency, and memory. Includes no-RAG baseline comparison.
+
+    \item \textbf{Deployment:} Pre-built ChromaDB committed to GitHub; Streamlit Cloud loads it at startup and serves the app at a persistent URL.
+\end{enumerate}
+
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Model Evaluation and Performance Metrics}
+
+\subsection{Evaluation Methodology}
+
+The system was evaluated against 20 hand-crafted Q\&A pairs covering the full breadth of the knowledge base. Each pair includes a question, a reference answer, and relevant keywords for retrieval precision assessment. A \textbf{no-RAG baseline} (GPT-4o-mini answering the same questions without retrieved context) was run for direct comparison.
+
+\subsection{Generation Quality --- RAG vs.\ Baseline}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Metric} & \textbf{RAG (RoboRAG)} & \textbf{Baseline (No RAG)} & \textbf{Improvement} \\
+\midrule
+ROUGE-1   & 0.5013 & 0.1978 & +0.3035 (+153\%) \\
+ROUGE-2   & 0.2575 & 0.0591 & +0.1984 (+336\%) \\
+ROUGE-L   & 0.3753 & 0.1243 & +0.2510 (+202\%) \\
+Token F1  & 0.2683 & 0.1053 & +0.1631 (+155\%) \\
+\bottomrule
+\end{tabular}
+\caption{Generation quality: RAG vs.\ standalone LLM baseline (20 questions).}
+\end{table}
+
+RAG delivers a \textbf{153\% improvement in ROUGE-1} and a \textbf{336\% improvement in ROUGE-2} over the standalone LLM. This confirms that retrieval grounding is essential for domain-specific Q\&A---the LLM alone lacks sufficiently detailed knowledge of robotics-specific topics.
+
+\subsection{Retrieval Quality}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Metric} & \textbf{Score} & \textbf{Interpretation} \\
+\midrule
+Precision@5 & 0.7700 & 77\% of retrieved chunks contain relevant keywords \\
+\bottomrule
+\end{tabular}
+\caption{Retrieval quality metrics.}
+\end{table}
+
+A Precision@5 of 0.77 means that on average, 3.85 out of 5 retrieved chunks are relevant to the question, demonstrating that the embedding model and chunking strategy effectively identify relevant passages.
+
+\subsection{Efficiency}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Metric} & \textbf{RAG (RoboRAG)} & \textbf{Baseline (No RAG)} \\
+\midrule
+Average latency & 4.85\,s & 9.62\,s \\
+Peak memory & 338.6\,MB & --- \\
+\bottomrule
+\end{tabular}
+\caption{Efficiency metrics.}
+\end{table}
+
+The RAG pipeline is faster than the baseline because GPT-4o-mini generates shorter, more focused answers when given relevant context. Memory consumption of 339~MB is well within Streamlit Cloud's 1~GB limit.
+
+\subsection{Per-Question Breakdown}
+
+\begin{longtable}{@{}clccccc@{}}
+\toprule
+\textbf{\#} & \textbf{Question (abbreviated)} & \textbf{R-1} & \textbf{R-L} & \textbf{F1} & \textbf{P@5} & \textbf{Latency} \\
+\midrule
+\endhead
+1  & Motion planner for 7-DOF arm       & 0.427 & 0.250 & 0.244 & 0.60 & 4.0\,s \\
+2  & RRT* vs PRM                        & 0.393 & 0.224 & 0.163 & 1.00 & 8.1\,s \\
+3  & Grasping transparent objects        & 0.482 & 0.362 & 0.240 & 0.60 & 4.2\,s \\
+4  & MoveIt~2 planning pipeline          & 0.379 & 0.253 & 0.194 & 1.00 & 3.7\,s \\
+5  & IK solvers in MoveIt~2             & 0.562 & 0.486 & 0.360 & 1.00 & 4.3\,s \\
+6  & STOMP vs CHOMP                     & 0.441 & 0.228 & 0.251 & 1.00 & 5.4\,s \\
+7  & ROS~2 communication                & 0.358 & 0.179 & 0.194 & 1.00 & 5.1\,s \\
+8  & Jacobian matrix in robotics        & 0.409 & 0.351 & 0.174 & 1.00 & 7.3\,s \\
+9  & Pick-and-place pipeline            & 0.551 & 0.483 & 0.192 & 1.00 & 4.9\,s \\
+10 & tf2 in ROS~2                       & 0.495 & 0.394 & 0.286 & 0.80 & 4.1\,s \\
+11 & Advantages of redundant arms       & 0.604 & 0.417 & 0.394 & 0.40 & 2.6\,s \\
+12 & Collision checking in MoveIt~2     & 0.582 & 0.522 & 0.303 & 1.00 & 2.5\,s \\
+13 & Forward vs inverse kinematics      & 0.441 & 0.321 & 0.232 & 0.60 & 5.3\,s \\
+14 & SLAM approaches                    & 0.403 & 0.349 & 0.224 & 0.60 & 6.6\,s \\
+15 & MoveIt Servo real-time control     & 0.706 & 0.521 & 0.475 & 0.60 & 3.0\,s \\
+16 & Narrow passage problem             & 0.429 & 0.325 & 0.203 & 0.40 & 3.5\,s \\
+17 & ros2\_control framework            & 0.624 & 0.447 & 0.331 & 0.60 & 3.6\,s \\
+18 & Franka Panda vs UR5e               & 0.444 & 0.270 & 0.211 & 1.00 & 8.3\,s \\
+19 & Configuration space                & 0.735 & 0.679 & 0.459 & 0.80 & 4.3\,s \\
+20 & Nav2 for mobile navigation         & 0.560 & 0.444 & 0.237 & 0.40 & 6.2\,s \\
+\bottomrule
+\caption{Per-question evaluation results.}
+\end{longtable}
+
+\subsection{User Experience}
+
+The application provides a responsive, intuitive interface:
+\begin{itemize}[nosep]
+    \item \textbf{Chat-style interaction:} Users type questions naturally and receive formatted answers.
+    \item \textbf{Example questions:} Randomized, clickable example questions help new users get started.
+    \item \textbf{Source transparency:} Every answer includes an expandable ``Source Documents'' section.
+    \item \textbf{Response time display:} Each answer shows generation latency.
+    \item \textbf{Dark theme:} A modern, eye-friendly dark theme for extended use.
+\end{itemize}
+
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Deployment Strategy}
+
+\subsection{Deployment Platform: Streamlit Cloud}
+
+The application is deployed on \textbf{Streamlit Cloud}, a free hosting platform purpose-built for Streamlit applications.
+
+\textbf{Deployed Application:} \url{PLACEHOLDER_STREAMLIT_URL}
+
+\subsection{Deployment Process}
+
+\begin{enumerate}[nosep]
+    \item The complete project (including the pre-built ChromaDB vector store) is pushed to a public GitHub repository.
+    \item On Streamlit Cloud (\url{https://share.streamlit.io/}), the repository is connected and \texttt{app.py} is set as the main file.
+    \item The \texttt{OPENAI\_API\_KEY} is added as a secret in the Streamlit Cloud dashboard (Settings $\rightarrow$ Secrets).
+    \item Streamlit Cloud automatically installs dependencies from \texttt{requirements.txt} and launches the app.
+\end{enumerate}
+
+\subsection{Why Streamlit Cloud}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Feature} & \textbf{Benefit} \\
+\midrule
+Always on & No sleep/wake cycle --- loads instantly when visited \\
+Free tier & No cost for public apps \\
+Persistent URL & Deployment link remains active indefinitely \\
+Auto deploys & Git pushes trigger automatic redeployment \\
+Secrets management & API keys stored securely and injected at runtime \\
+\bottomrule
+\end{tabular}
+\caption{Streamlit Cloud advantages.}
+\end{table}
+
+\subsection{Expected User Interaction}
+
+\begin{enumerate}[nosep]
+    \item User opens the deployment link in any web browser.
+    \item The app loads with a welcome screen showing randomized example questions.
+    \item User types a robotics question or clicks an example.
+    \item Within 3--5 seconds, a grounded answer with source citations appears.
+    \item User can expand the ``Source Documents'' section to verify claims.
+    \item Conversation history is maintained within the session.
+\end{enumerate}
+
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Expected Outcomes and Challenges}
+
+\subsection{Expected Outcomes}
+
+\begin{enumerate}[nosep]
+    \item \textbf{Grounded, cited answers:} Technically accurate answers grounded in verified documentation with source citations.
+    \item \textbf{Demonstrated RAG effectiveness:} 153\% improvement in ROUGE-1 and 155\% improvement in Token F1 over the standalone LLM baseline.
+    \item \textbf{Responsive user experience:} Average response time of 4.85 seconds.
+    \item \textbf{Accessible deployment:} Streamlit Cloud (free) + OpenAI API (under \$2 total).
+\end{enumerate}
+
+\subsection{Challenges Encountered and Solutions}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}p{3.5cm}p{4cm}p{5.5cm}@{}}
+\toprule
+\textbf{Challenge} & \textbf{Impact} & \textbf{Solution} \\
+\midrule
+Initial API choice (Gemini free tier) & 20 gen.\ requests/day, 100 embed requests/min made dev impractical & Switched to OpenAI GPT-4o-mini (\textasciitilde\$2 total, generous rate limits) \\
+\addlinespace
+Knowledge base coverage & Gaps lead to ``I don't know'' or poor retrieval & Authored 8 comprehensive docs (\textasciitilde15,000 words) \\
+\addlinespace
+Chunk boundary issues & Split info causes incomplete retrieval & 100-token overlap + semantic separators \\
+\addlinespace
+Deployment memory & Streamlit Cloud 1\,GB limit & Cloud-based embedding API; app uses only 339\,MB \\
+\addlinespace
+Evaluation rigor & Must fairly compare RAG vs.\ baseline & 20 benchmark Q\&As with hand-written references \\
+\bottomrule
+\end{tabular}
+\caption{Challenges and solutions.}
+\end{table}
+
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Resources Required}
+
+\subsection{Software and Frameworks}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Resource} & \textbf{Version} & \textbf{Purpose} \\
+\midrule
+Python & 3.10+ & Programming language \\
+Streamlit & $\geq$1.32.0 & Web application framework \\
+LangChain & $\geq$0.3.0 & RAG orchestration \\
+langchain-openai & $\geq$0.3.0 & OpenAI API integration \\
+langchain-chroma & $\geq$0.2.0 & ChromaDB integration \\
+ChromaDB & $\geq$0.5.0 & Vector database \\
+openai & $\geq$1.30.0 & OpenAI API client \\
+rouge-score & $\geq$0.1.2 & ROUGE metrics \\
+scikit-learn & $\geq$1.4.0 & ML utilities \\
+psutil & $\geq$5.9.0 & Memory monitoring \\
+python-dotenv & $\geq$1.0.0 & Environment variable management \\
+\bottomrule
+\end{tabular}
+\caption{Software dependencies.}
+\end{table}
+
+\subsection{Models}
+
+Both models are accessed via API with no local download required:
+\begin{itemize}[nosep]
+    \item \textbf{OpenAI GPT-4o-mini} --- text generation
+    \item \textbf{OpenAI text-embedding-3-small} --- vector embeddings
+\end{itemize}
+
+\subsection{Data Sources (Curated Knowledge Base)}
+
+\begin{itemize}[nosep]
+    \item Motion planning algorithms (RRT, RRT*, PRM, STOMP, CHOMP, TrajOpt)
+    \item MoveIt~2 framework documentation
+    \item ROS~2 fundamentals and architecture
+    \item Robot manipulation and grasping techniques
+    \item Robot kinematics and dynamics
+    \item Path planning fundamentals
+    \item SLAM and perception for robotics
+    \item Common robot platforms (Franka Panda, UR5e, KUKA iiwa, etc.)
+\end{itemize}
+
+\subsection{Hardware and Cost}
+
+\begin{itemize}[nosep]
+    \item \textbf{Development:} Any machine with Python 3.10+ and internet access
+    \item \textbf{Deployment:} Streamlit Cloud free tier (1\,GB RAM, shared CPU) --- no GPU required
+    \item \textbf{API cost:} Under \$2 total for the entire project lifecycle
+\end{itemize}
+
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Conclusion}
+
+\subsection{Key Takeaways}
+
+RoboRAG demonstrates that Retrieval-Augmented Generation is an effective approach for building domain-specific question-answering systems in technical fields. By grounding LLM responses in curated, verified documentation, the system provides accurate, cited answers that users can trust and verify---addressing the fundamental hallucination problem that limits the usefulness of standalone LLMs in specialized domains.
+
+The project achieved its core objectives:
+
+\begin{enumerate}[nosep]
+    \item \textbf{Functional web application:} A responsive Streamlit chat interface that answers robotics questions with cited sources, deployed on Streamlit Cloud with a persistent URL.
+    \item \textbf{Quantified RAG advantage:} The full 20-question evaluation demonstrates a \textbf{153\% improvement in ROUGE-1} and \textbf{155\% improvement in Token F1} when using RAG versus the standalone LLM.
+    \item \textbf{Strong retrieval quality:} Precision@5 of 77.0\% confirms that the embedding model and chunking strategy effectively identify relevant passages.
+    \item \textbf{Efficient and accessible:} Average latency of 4.85\,s, memory usage of 339\,MB, and total API cost under \$2.
+\end{enumerate}
+
+\subsection{Potential Improvements and Future Enhancements}
+
+\begin{enumerate}[nosep]
+    \item \textbf{Expanded knowledge base:} Incorporate live scraping of MoveIt~2 and ROS~2 docs, more arXiv papers, and community Q\&A threads.
+    \item \textbf{Hybrid retrieval:} Combine dense (embedding-based) retrieval with sparse (BM25) retrieval for better handling of specific technical terms.
+    \item \textbf{Conversational memory:} Add multi-turn conversation support for follow-up questions.
+    \item \textbf{User feedback loop:} Allow users to rate answers and flag incorrect responses.
+    \item \textbf{Fine-tuned embeddings:} Train an embedding model on robotics text for improved domain-specific retrieval.
+    \item \textbf{Upgraded LLM:} Test with GPT-4o or newer models for improved generation quality on complex questions.
+\end{enumerate}
+
+
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{thebibliography}{99}
+
+\bibitem{lewis2020rag}
+P.~Lewis et al., ``Retrieval-augmented generation for knowledge-intensive NLP tasks,'' \textit{NeurIPS}, 2020.
+
+\bibitem{kavraki1996prm}
+L.~E.~Kavraki, P.~Svestka, J.-C.~Latombe, and M.~H.~Overmars, ``Probabilistic roadmaps for path planning in high-dimensional configuration spaces,'' \textit{IEEE Trans.\ Robotics and Automation}, vol.~12, no.~4, pp.~566--580, 1996.
+
+\bibitem{lavalle1998rrt}
+S.~M.~LaValle, ``Rapidly-exploring random trees: A new tool for path planning,'' Iowa State University, Tech.\ Rep.\ TR 98-11, 1998.
+
+\bibitem{karaman2011sampling}
+S.~Karaman and E.~Frazzoli, ``Sampling-based algorithms for optimal motion planning,'' \textit{Intl.\ J.\ Robotics Research}, vol.~30, no.~7, pp.~846--894, 2011.
+
+\bibitem{lynch2017modern}
+K.~M.~Lynch and F.~C.~Park, \textit{Modern Robotics: Mechanics, Planning, and Control}, Cambridge Univ.\ Press, 2017.
+
+\bibitem{langchain}
+LangChain, \url{https://github.com/langchain-ai/langchain}, 2023.
+
+\bibitem{chroma}
+Chroma, \url{https://github.com/chroma-core/chroma}, 2023.
+
+\bibitem{openai}
+OpenAI API Documentation, \url{https://platform.openai.com/docs}, 2024.
+
+\bibitem{streamlit}
+Streamlit Documentation, \url{https://docs.streamlit.io/}, 2024.
+
+\end{thebibliography}
+
+\end{document}

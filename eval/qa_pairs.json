@@ -1,0 +1,102 @@
+[
+  {
+    "question": "What motion planner should I use for a 7-DOF arm in a cluttered environment?",
+    "reference_answer": "For a 7-DOF arm in a cluttered environment, RRT-Connect is a strong default choice as it is the default planner in MoveIt 2's OMPL configuration and works well in high-dimensional spaces. For better path quality, RRT* provides asymptotically optimal paths but requires more computation time. If you need smooth trajectories for execution on real hardware, consider using STOMP or CHOMP as post-processing or standalone planners. A common pipeline is to use RRT for an initial feasible path and then refine it with STOMP for smoothness.",
+    "relevant_keywords": ["RRT", "STOMP", "CHOMP", "7-DOF", "cluttered", "OMPL"]
+  },
+  {
+    "question": "How does RRT* differ from PRM for high-dimensional configuration spaces?",
+    "reference_answer": "RRT* is a single-query, asymptotically optimal sampling-based planner that builds a tree from the start configuration and rewires it to converge to the optimal path. PRM is a multi-query planner that builds a roadmap of the free configuration space in a preprocessing phase and then answers queries by connecting start and goal to the roadmap. RRT* is better for single-query scenarios, while PRM amortizes its cost across multiple queries in the same environment. Both are probabilistically complete, but RRT* is asymptotically optimal while basic PRM is not.",
+    "relevant_keywords": ["RRT*", "PRM", "asymptotically optimal", "single-query", "multi-query", "roadmap"]
+  },
+  {
+    "question": "What are the best practices for grasping transparent objects?",
+    "reference_answer": "Transparent objects are challenging because standard depth sensors fail on them. Best practices include: using polarization cameras to detect surface normals, multi-view stereo with multiple RGB cameras, learned depth completion methods like ClearGrasp or TranspareNet that predict depth from RGB and noisy depth input, tactile sensing after contact, and edge-based methods that detect contours in RGB images.",
+    "relevant_keywords": ["transparent", "polarization", "depth", "ClearGrasp", "tactile", "grasping"]
+  },
+  {
+    "question": "Explain the MoveIt 2 planning pipeline and its components.",
+    "reference_answer": "The MoveIt 2 planning pipeline takes a motion plan request and returns a trajectory. It consists of a planner (OMPL, Pilz, STOMP, or CHOMP), optional plan request adapters for pre-processing, and optional plan response adapters for post-processing such as trajectory smoothing. The Move Group node integrates all components and provides actions and services. The Planning Scene maintains the world representation including robot state, collision objects, and the allowed collision matrix. Kinematics solvers (KDL, TRAC-IK, IKFast) handle IK queries.",
+    "relevant_keywords": ["MoveIt", "planning pipeline", "OMPL", "Planning Scene", "Move Group", "kinematics"]
+  },
+  {
+    "question": "What IK solvers are available in MoveIt 2 and how do they compare?",
+    "reference_answer": "MoveIt 2 supports several IK solvers: KDL is the default numerical solver based on Newton-Raphson but can be slow and fail near singularities. TRAC-IK is a drop-in replacement that runs KDL-style solving and SQP in parallel, achieving higher success rates. IKFast generates analytical solvers from OpenRAVE that are very fast but must be generated for each specific robot. BioIK uses evolutionary optimization and is good for redundant robots or complex constraints.",
+    "relevant_keywords": ["KDL", "TRAC-IK", "IKFast", "BioIK", "inverse kinematics", "MoveIt"]
+  },
+  {
+    "question": "What is the difference between STOMP and CHOMP?",
+    "reference_answer": "STOMP (Stochastic Trajectory Optimization for Motion Planning) is gradient-free and works by generating noisy trajectory variations and combining them using weighted averages. CHOMP (Covariant Hamiltonian Optimization for Motion Planning) is gradient-based and requires a differentiable cost function with precomputed signed distance fields. STOMP is more flexible with arbitrary cost functions while CHOMP is faster per iteration. Both produce smooth trajectories and can get stuck in local minima.",
+    "relevant_keywords": ["STOMP", "CHOMP", "gradient", "trajectory optimization", "smooth"]
+  },
+  {
+    "question": "How does ROS 2 handle communication between nodes?",
+    "reference_answer": "ROS 2 nodes communicate via three mechanisms: Topics for asynchronous publish-subscribe communication (many-to-many), Services for synchronous request-response communication (one-to-one), and Actions for long-running tasks with feedback and cancellation support. ROS 2 uses DDS (Data Distribution Service) as its underlying middleware, which provides automatic discovery, Quality of Service settings, and built-in security.",
+    "relevant_keywords": ["topics", "services", "actions", "DDS", "publish", "subscribe", "ROS 2"]
+  },
+  {
+    "question": "What is the Jacobian matrix and how is it used in robotics?",
+    "reference_answer": "The Jacobian matrix J(q) relates joint velocities to end-effector velocities: x_dot = J(q) * q_dot. It is used for differential kinematics, inverse velocity kinematics (computing joint velocities for desired end-effector motion), singularity analysis (singularities occur when the Jacobian loses rank), force/torque mapping (tau = J^T * F), and computing the manipulability ellipsoid which indicates how easily the robot can move in different directions.",
+    "relevant_keywords": ["Jacobian", "velocity", "singularity", "manipulability", "force", "kinematics"]
+  },
+  {
+    "question": "How does the pick-and-place pipeline work for a robot arm?",
+    "reference_answer": "A standard pick-and-place pipeline involves: perception to detect and localize the target object, grasp selection to choose a grasp pose, pre-grasp approach (moving to an offset pose), approach via linear motion to the grasp pose, closing the gripper, lifting to clear the surface, transport via free-space motion planning, place approach, lowering and opening the gripper, and retreat. MoveIt Task Constructor (MTC) can define these stages declaratively.",
+    "relevant_keywords": ["pick and place", "grasp", "approach", "lift", "gripper", "MTC"]
+  },
+  {
+    "question": "What is tf2 in ROS 2 and why is it important?",
+    "reference_answer": "tf2 is the transform library in ROS 2 that manages coordinate frame transforms. It maintains a tree of transforms between frames (like base_link, camera_link, world) and allows querying the transform between any two frames at any point in time. It supports both static transforms (fixed, like a camera mount) and dynamic transforms (changing, like joint-driven links). tf2 is essential for converting sensor data between coordinate frames.",
+    "relevant_keywords": ["tf2", "transform", "frame", "coordinate", "static", "dynamic"]
+  },
+  {
+    "question": "What are the advantages of a redundant robot arm?",
+    "reference_answer": "A kinematically redundant robot (more DOF than needed for the task, e.g., 7-DOF for 6-DOF tasks) can optimize secondary objectives while achieving the primary task, such as avoiding joint limits, avoiding obstacles, or maximizing manipulability. It can avoid singularities using the extra degrees of freedom and has a greater workspace and dexterity. Null-space motion allows moving joints without affecting the end effector position.",
+    "relevant_keywords": ["redundant", "null space", "7-DOF", "singularity", "manipulability", "joint limits"]
+  },
+  {
+    "question": "What collision checking libraries does MoveIt 2 support?",
+    "reference_answer": "MoveIt 2 supports FCL (Flexible Collision Library) as the default collision checker, which handles mesh-mesh, mesh-primitive, and primitive-primitive collision checks using Bounding Volume Hierarchies. Bullet Physics is an alternative that is often faster for complex scenes and supports continuous collision checking. The Allowed Collision Matrix (ACM) speeds up planning by disabling unnecessary collision pair checks between links that can never collide.",
+    "relevant_keywords": ["FCL", "Bullet", "collision", "ACM", "BVH", "MoveIt"]
+  },
+  {
+    "question": "Explain the difference between forward and inverse kinematics.",
+    "reference_answer": "Forward kinematics (FK) computes the end-effector position and orientation given joint angles, using the chain of homogeneous transformation matrices. It is straightforward and has a unique solution. Inverse kinematics (IK) computes joint angles for a desired end-effector pose. IK is harder because the mapping is not one-to-one (multiple solutions may exist), solutions may not exist outside the workspace, and the problem is nonlinear. IK can be solved analytically for specific geometries or numerically for general robots.",
+    "relevant_keywords": ["forward kinematics", "inverse kinematics", "joint angles", "end effector", "transformation"]
+  },
+  {
+    "question": "What is SLAM and what are the main approaches?",
+    "reference_answer": "SLAM (Simultaneous Localization and Mapping) is the problem of building a map while tracking the robot's pose. Main approaches include Visual SLAM using cameras (ORB-SLAM3, RTAB-Map), Lidar SLAM using laser scanners (Cartographer, LOAM), and Graph-based SLAM that formulates the problem as a factor graph with robot poses and landmarks as nodes and constraints as edges, optimized using nonlinear least squares. Modern systems often combine multiple sensor modalities through sensor fusion.",
+    "relevant_keywords": ["SLAM", "localization", "mapping", "ORB-SLAM", "Cartographer", "lidar", "visual"]
+  },
+  {
+    "question": "How does MoveIt Servo work for real-time robot control?",
+    "reference_answer": "MoveIt Servo enables real-time, low-latency control of robot arms by accepting twist commands (Cartesian velocities) or joint velocity commands. It runs at high frequency (typically 100-1000 Hz) and performs real-time collision checking. Use cases include teleoperation, visual servoing, force-guided motion, and joystick control. It allows reactive control that is faster than traditional plan-then-execute approaches.",
+    "relevant_keywords": ["Servo", "real-time", "teleoperation", "twist", "velocity", "collision"]
+  },
+  {
+    "question": "What is the narrow passage problem in motion planning?",
+    "reference_answer": "The narrow passage problem occurs when the free configuration space contains tight passages that are hard for random samplers to find. PRM and RRT struggle because random samples are unlikely to land in narrow regions. Solutions include Gaussian sampling (keeping samples near obstacle boundaries), bridge test sampling (keeping samples near two obstacles simultaneously), and adaptive sampling that increases density in difficult regions.",
+    "relevant_keywords": ["narrow passage", "PRM", "sampling", "Gaussian", "bridge test", "obstacle"]
+  },
+  {
+    "question": "What is ros2_control and how does it work?",
+    "reference_answer": "ros2_control is a framework for real-time robot control in ROS 2. It provides a hardware interface abstraction layer with command interfaces (position, velocity, effort commands sent to hardware) and state interfaces (values read from hardware). The Controller Manager handles loading, configuring, and activating controllers. Common controllers include Joint Trajectory Controller (used by MoveIt 2), Forward Command Controller, Diff Drive Controller, and Gripper Action Controller.",
+    "relevant_keywords": ["ros2_control", "controller", "hardware interface", "Joint Trajectory", "command", "state"]
+  },
+  {
+    "question": "Compare the Franka Panda and UR5e robot arms.",
+    "reference_answer": "The Franka Panda is a 7-DOF arm with 3 kg payload, 855 mm reach, and integrated torque sensors in all joints, making it ideal for compliant, force-sensitive research tasks. The UR5e is a 6-DOF arm with 5 kg payload, 850 mm reach, built-in force/torque sensor at the tool flange, and is widely deployed in industry. The Panda excels at research with its torque control capabilities, while the UR5e is more practical for industrial applications with its higher payload and ecosystem of accessories.",
+    "relevant_keywords": ["Franka", "Panda", "UR5", "payload", "torque", "DOF"]
+  },
+  {
+    "question": "What is the configuration space in robotics?",
+    "reference_answer": "The configuration space (C-space) is the space of all possible joint configurations of a robot. For a robot with n revolute joints, it is an n-dimensional space. C-free is the subset where the robot does not collide with obstacles, and C-obstacle is where collisions occur. Motion planning finds a path through C-free. C-space is typically too high-dimensional to represent explicitly, which is why sampling-based planners like RRT and PRM are used instead of grid-based methods.",
+    "relevant_keywords": ["configuration space", "C-space", "C-free", "collision", "sampling", "dimension"]
+  },
+  {
+    "question": "How does Nav2 work for mobile robot navigation in ROS 2?",
+    "reference_answer": "Nav2 is the ROS 2 navigation framework. It uses costmaps (2D/3D grids representing obstacle costs updated from sensors), a global planner (NavFn, Smac) to plan paths on the costmap, a local planner or controller (DWB, MPPI, RPP) to follow the path while avoiding dynamic obstacles, and recovery behaviors (spin, clear costmap, back up) when stuck. Nav2 orchestrates the pipeline using behavior trees via BehaviorTree.CPP.",
+    "relevant_keywords": ["Nav2", "costmap", "global planner", "local planner", "behavior tree", "navigation"]
+  }
+]
