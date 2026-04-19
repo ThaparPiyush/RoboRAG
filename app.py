@@ -77,25 +77,23 @@ if "feedback_given" not in st.session_state:
 if "shown_examples" not in st.session_state:
     ALL_EXAMPLES = [
         "What motion planner should I use for a 7-DOF arm in a cluttered environment?",
-        "How does RRT* differ from PRM for high-dimensional configuration spaces?",
+        "How does RRT* differ from PRM for high-dimensional spaces?",
         "What are the best practices for grasping transparent objects?",
         "Explain the MoveIt 2 planning pipeline and its components.",
-        "What IK solvers are available in MoveIt 2 and how do they compare?",
-        "How does Nav2 handle obstacle avoidance for mobile robots?",
+        "What IK solvers are available in MoveIt 2?",
         "What is the difference between STOMP and CHOMP?",
         "How does ROS 2 handle communication between nodes?",
         "What is the Jacobian matrix and how is it used in robotics?",
         "How does the pick-and-place pipeline work for a robot arm?",
-        "What is tf2 in ROS 2 and why is it important?",
-        "What are the advantages of a redundant robot arm?",
         "What collision checking libraries does MoveIt 2 support?",
         "Explain the difference between forward and inverse kinematics.",
         "What is SLAM and what are the main approaches?",
         "How does MoveIt Servo work for real-time robot control?",
         "What is the narrow passage problem in motion planning?",
-        "What is ros2_control and how does it work?",
         "Compare the Franka Panda and UR5e robot arms.",
-        "What is the configuration space in robotics?",
+        "What types of grippers are used in robot manipulation?",
+        "How does the Denavit-Hartenberg convention work?",
+        "What is impedance control in robot manipulation?",
     ]
     st.session_state.shown_examples = random.sample(ALL_EXAMPLES, 6)
 

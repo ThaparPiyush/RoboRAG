@@ -67,8 +67,23 @@ Answer:"""
 
 FOLLOWUP_PROMPT_TEMPLATE = """\
 Based on this robotics Q&A exchange, suggest exactly 3 brief follow-up questions \
-the user might ask next. Each should explore a different aspect or go deeper. \
-Keep each question under 15 words.
+the user might ask next. Keep each question under 15 words.
+
+STRICT RULES for generating follow-up questions:
+1. Only ask about CONCEPTS, COMPARISONS, or HOW THINGS WORK — never about \
+   implementation steps, installation, configuration, code, tutorials, or setup.
+2. Stay strictly within these knowledge base topics:
+   - Motion planning algorithms: RRT, RRT*, PRM, STOMP, CHOMP, TrajOpt, their properties and trade-offs
+   - MoveIt 2: planning pipeline, collision checking (FCL, Bullet), MoveIt Servo, Task Constructor, OMPL integration
+   - ROS 2: nodes, topics, services, actions, tf2, ros2_control, Nav2, URDF, Xacro, DDS
+   - Robot manipulation: pick-and-place, grasp planning, gripper types, force/impedance control, dual-arm
+   - Kinematics & dynamics: forward/inverse kinematics, Jacobian, DH convention, singularities, redundancy, workspace
+   - Path planning: configuration space, A*, potential fields, collision detection, completeness, optimality
+   - SLAM & perception: visual SLAM, lidar SLAM, point clouds, depth cameras, sensor fusion, calibration
+   - Robot platforms: Franka Panda, UR5e, KUKA iiwa, Gazebo, Isaac Sim, MuJoCo
+3. Each question should ask "What is...", "How does X compare to Y...", "What are the properties of...", \
+   "Why is X important...", or "What are the trade-offs between...".
+4. NEVER ask "How do I implement...", "How to configure...", "How to set up...", or "What tools/packages...".
 
 Question: {question}
 Answer: {answer}
