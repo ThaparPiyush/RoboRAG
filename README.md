@@ -2,6 +2,8 @@
 
 A RAG-powered web application that answers robotics and motion planning questions using OpenAI GPT-4o-mini, grounded in a curated knowledge base of robotics documentation.
 
+**Live App:** [https://roborag-obkaigiobmcgcrqbtdwett.streamlit.app/](https://roborag-obkaigiobmcgcrqbtdwett.streamlit.app/)
+
 **Course:** DS552 — Generative AI, Worcester Polytechnic Institute  
 **Author:** Piyush Thapar
 
